@@ -4,10 +4,14 @@ import { CalendarDays, Mail, Users } from "lucide-react"
 import EventList from "@/components/event-list"
 import { getUpcomingEvents } from "@/lib/firebase/events"
 
+// Remplacer la fonction Home par cette version avec plus de logs
 export default async function Home() {
+  console.log("Fetching events for home page...")
   const events = await getUpcomingEvents()
-
-  console.log("Upcoming events:", events.length)
+  console.log(
+    `Rendering home page with ${events.length} events:`,
+    events.map((e) => ({ id: e.id, title: e.title, date: e.date })),
+  )
 
   return (
     <div className="container mx-auto px-4 py-12">

@@ -100,28 +100,61 @@ export async function getAllEvents(): Promise<Event[]> {
   }
 }
 
+// Remplacer la fonction getUpcomingEvents par cette version simplifiée et robuste
 export async function getUpcomingEvents(): Promise<Event[]> {
   try {
-    // Récupérer tous les événements et filtrer côté client
-    // C'est une solution temporaire pour éviter les problèmes de comparaison de dates dans Firestore
-    const eventsQuery = query(collection(db, "events"), orderBy("date", "asc"))
-    const querySnapshot = await getDocs(eventsQuery)
+    console.log("Fetching upcoming events...")
+    // Récupérer tous les événements
+    const eventsRef = collection(db, "events")
+    const querySnapshot = await getDocs(eventsRef)
 
-    const now = new Date()
+    console.log(`Found ${querySnapshot.docs.length} events in total`)
 
+    if (querySnapshot.empty) {
+      console.log("No events found in the database")
+      return []
+    }
+
+    // Convertir les documents en objets Event
     const events = querySnapshot.docs.map((doc) => {
       const data = doc.data()
-      // Convertir les timestamps en strings si nécessaire
+      console.log(`Event ${doc.id}:`, data)
+
+      // Normaliser les dates (gérer à la fois les strings et les timestamps)
+      let eventDate: string
+      if (typeof data.date === "string") {
+        eventDate = data.date
+      } else if (data.date && typeof data.date.toDate === "function") {
+        eventDate = data.date.toDate().toISOString()
+      } else {
+        console.log(`Invalid date format for event ${doc.id}:`, data.date)
+        eventDate = new Date().toISOString() // Fallback à aujourd'hui
+      }
+
       return {
         id: doc.id,
         ...data,
-        date: typeof data.date === "string" ? data.date : data.date.toDate().toISOString(),
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
-      }
-    }) as Event[]
+        date: eventDate,
+        createdAt:
+          data.createdAt instanceof Timestamp
+            ? data.createdAt.toDate().toISOString()
+            : data.createdAt || new Date().toISOString(),
+      } as Event
+    })
 
     // Filtrer les événements à venir
-    return events.filter((event) => new Date(event.date) >= now)
+    const now = new Date()
+    const upcomingEvents = events.filter((event) => {
+      const eventDate = new Date(event.date)
+      const isUpcoming = eventDate >= now
+      console.log(`Event ${event.id} date: ${event.date}, is upcoming: ${isUpcoming}`)
+      return isUpcoming
+    })
+
+    console.log(`Found ${upcomingEvents.length} upcoming events`)
+
+    // Trier par date (du plus proche au plus éloigné)
+    return upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   } catch (error) {
     console.error("Error getting upcoming events:", error)
     return []

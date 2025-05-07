@@ -51,6 +51,7 @@ export default function NewEventPage() {
     },
   })
 
+  // Modifier la fonction onSubmit pour ajouter des logs et s'assurer que les données sont correctement formatées
   const onSubmit = async (data: EventFormValues) => {
     setIsSubmitting(true)
     try {
@@ -69,7 +70,9 @@ export default function NewEventPage() {
         imageUrl: data.imageUrl || null,
       }
 
-      await createEvent(eventData)
+      console.log("Formatted event data:", eventData)
+      const eventId = await createEvent(eventData)
+      console.log("Event created with ID:", eventId)
 
       toast({
         title: "Événement créé",
